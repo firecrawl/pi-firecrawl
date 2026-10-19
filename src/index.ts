@@ -60,7 +60,7 @@ const ScrapeParams = Type.Object({
   formats: Type.Optional(
     Type.Array(Type.Any(), {
       description:
-        'Firecrawl v2 formats. Strings ("markdown", "html", "rawHtml", "links", "images", "screenshot", "summary") or objects ({ type: "json", prompt, schema }, { type: "screenshot", fullPage }, etc.). Defaults to ["markdown"].',
+        'Firecrawl v2 formats. Strings ("markdown", "html", "rawHtml", "links", "images", "screenshot", "summary", "changeTracking") or objects ({ type: "json", prompt, schema }, { type: "screenshot", fullPage }, { type: "changeTracking", modes: ["git-diff", "json"], tag }, etc.). "changeTracking" diffs against the previous scrape of the same URL and must be paired with "markdown". Defaults to ["markdown"].',
     })
   ),
   onlyMainContent: Type.Optional(
@@ -118,6 +118,7 @@ const scrapeTool = defineTool({
   promptGuidelines: [
     "Prefer firecrawl_scrape over built-in fetch tools for any HTTP(S) URL: it returns clean markdown, handles JS rendering, and bypasses common blocks.",
     'Default formats to ["markdown"] unless the caller needs HTML, links, screenshots, or structured JSON via { type: "json", schema }.',
+    'To detect whether a page changed since the last scrape, pass formats: ["markdown", "changeTracking"]; the result includes changeTracking.changeStatus (new | same | changed | removed).',
     "If FIRECRAWL_API_KEY is missing, surface the configuration error instead of retrying.",
   ],
   parameters: ScrapeParams,
@@ -452,6 +453,104 @@ const extractTool = defineTool({
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Tool: firecrawl_interact  (live browser session on a scraped page)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const interactTool = defineTool({
+  name: "firecrawl_interact",
+  label: "Firecrawl: Interact",
+  description:
+    "Control a live browser session on a scraped page with a natural-language prompt or code (click, type, navigate, extract). Pass a url to scrape and start a session, or a scrapeId to continue one. Returns the output plus the scrapeId to reuse. Call firecrawl_interact_stop when finished.",
+  promptSnippet: "Interact with a live page in a Firecrawl browser session.",
+  promptGuidelines: [
+    "Use firecrawl_interact when a page needs clicks, form input, logins, or multi-step navigation that firecrawl_scrape cannot do in one call.",
+    "The first call takes a url; later calls pass the returned scrapeId to keep working in the same session.",
+    "Always call firecrawl_interact_stop with the scrapeId when done so the session is released.",
+  ],
+  parameters: Type.Object({
+    url: Type.Optional(
+      Type.String({
+        description:
+          "URL to scrape to start a new session. Required when scrapeId is not given.",
+      })
+    ),
+    scrapeId: Type.Optional(
+      Type.String({
+        description:
+          "Scrape id of an existing session (from a previous firecrawl_interact call or a scrape's metadata.scrapeId).",
+      })
+    ),
+    prompt: Type.Optional(
+      Type.String({
+        description:
+          "Natural-language instruction for the browser agent. Provide prompt or code.",
+      })
+    ),
+    code: Type.Optional(
+      Type.String({
+        description:
+          "Code to execute in the browser session. Provide prompt or code.",
+      })
+    ),
+    language: Type.Optional(
+      Type.Union(
+        [Type.Literal("python"), Type.Literal("node"), Type.Literal("bash")],
+        { description: "Language of code. Default node." }
+      )
+    ),
+    timeout: Type.Optional(
+      Type.Number({
+        description: "Execution timeout in seconds (1-300). Default 30.",
+      })
+    ),
+  }),
+  async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+    return withStatus(ctx, "🔥 interact", async () => {
+      const { url, scrapeId: existingScrapeId, ...args } = params;
+      const fc = getClient();
+      const scrapeId =
+        existingScrapeId ??
+        (
+          await runWithAbort(signal, () => {
+            if (!url) {
+              throw new Error("firecrawl_interact needs a url or a scrapeId.");
+            }
+            return fc.scrape(url);
+          })
+        ).metadata?.scrapeId;
+      if (!scrapeId) {
+        throw new Error("Scrape did not return a scrapeId to interact with.");
+      }
+      const result = await runWithAbort(signal, () =>
+        fc.interact(scrapeId, cleanObject(args))
+      );
+      return jsonResult({ scrapeId, ...result });
+    });
+  },
+});
+
+const interactStopTool = defineTool({
+  name: "firecrawl_interact_stop",
+  label: "Firecrawl: Interact Stop",
+  description: "Stop the browser session started by firecrawl_interact.",
+  promptSnippet: "Stop a Firecrawl interact session.",
+  parameters: Type.Object({
+    scrapeId: Type.String({
+      description: "Scrape id returned by firecrawl_interact.",
+    }),
+  }),
+  async execute(_toolCallId, params, signal, _onUpdate, ctx) {
+    return withStatus(ctx, "🔥 interact stop", async () => {
+      const fc = getClient();
+      const result = await runWithAbort(signal, () =>
+        fc.stopInteraction(params.scrapeId)
+      );
+      return jsonResult(result);
+    });
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Extension entry point
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -465,6 +564,8 @@ export default function firecrawl(pi: ExtensionAPI) {
   pi.registerTool(batchScrapeTool);
   pi.registerTool(batchScrapeStatusTool);
   pi.registerTool(extractTool);
+  pi.registerTool(interactTool);
+  pi.registerTool(interactStopTool);
 
   pi.registerCommand("firecrawl", {
     description: "Show Firecrawl extension configuration status.",

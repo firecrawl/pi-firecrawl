@@ -12,6 +12,8 @@
 - 🕷️ **Async crawl jobs** with status, cancel, and pagination.
 - 📚 **Batch scrape** across many URLs in a single job.
 - 🧩 **Structured extraction** via JSON Schema.
+- 🖱️ **Interact sessions** to click, type, and navigate a live page with a prompt or code.
+- 🔄 **Change tracking** on scrapes to detect whether a page changed since the last visit.
 - 🔒 Never logs or displays your API key.
 - ⚡ Powered by the SDK — supports JS rendering, anti-bot bypass, PDFs, screenshots, actions, and proxy modes.
 
@@ -64,6 +66,8 @@ The extension never logs or displays the API key.
 | `firecrawl_batch_scrape`        | Start an async job scraping many URLs at once.                              |
 | `firecrawl_batch_scrape_status` | Poll a batch scrape job.                                                    |
 | `firecrawl_extract`             | Multi-URL structured extraction with a shared schema or prompt.             |
+| `firecrawl_interact`            | Control a live browser session on a page with a prompt or code.             |
+| `firecrawl_interact_stop`       | Stop an interact session.                                                   |
 
 All tools fail with a clear configuration error when `FIRECRAWL_API_KEY` is missing.
 
@@ -144,6 +148,38 @@ Structured extraction from a single page (preferred over `firecrawl_extract` for
   ]
 }
 ```
+
+Detect changes since the last scrape (`changeTracking` needs `markdown` alongside it):
+
+```json
+{
+  "url": "https://www.firecrawl.dev/pricing",
+  "formats": ["markdown", "changeTracking"]
+}
+```
+
+The result includes `changeTracking.changeStatus` (`new`, `same`, `changed`, or `removed`).
+
+Interact with a page (first call scrapes the URL and opens a session; the result includes a `scrapeId`):
+
+```json
+{
+  "url": "https://example.com",
+  "prompt": "What is the page title?"
+}
+```
+
+Continue in the same session, then stop it when done:
+
+```json
+{ "scrapeId": "<scrapeId from the previous call>", "prompt": "Click the first link" }
+```
+
+```json
+{ "scrapeId": "<scrapeId>" }
+```
+
+The last call is `firecrawl_interact_stop`.
 
 ## 🧠 Use cases
 
