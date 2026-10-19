@@ -12,6 +12,7 @@ import { Type } from "typebox";
 
 const STATUS_KEY = "firecrawl";
 const PACKAGE_NAME = "@firecrawl/pi-firecrawl";
+const INTEGRATION = "_pi-firecrawl-extension";
 
 interface FirecrawlSettings {
   apiUrl: string;
@@ -126,7 +127,7 @@ const scrapeTool = defineTool({
       const { url, ...options } = params;
       const fc = getClient();
       const result = await runWithAbort(signal, () =>
-        fc.scrape(url, cleanObject(options))
+        fc.scrape(url, { ...cleanObject(options), integration: INTEGRATION })
       );
       return jsonResult(result);
     });
@@ -182,7 +183,7 @@ const searchTool = defineTool({
       const { query, ...req } = params;
       const fc = getClient();
       const result = await runWithAbort(signal, () =>
-        fc.search(query, cleanObject(req))
+        fc.search(query, { ...cleanObject(req), integration: INTEGRATION })
       );
       return jsonResult(result);
     });
@@ -224,7 +225,10 @@ const mapTool = defineTool({
       const { url, ...options } = params;
       const fc = getClient();
       const result = await runWithAbort(signal, () =>
-        fc.map(url, cleanObject(options) as MapOptions)
+        fc.map(url, {
+          ...(cleanObject(options) as MapOptions),
+          integration: INTEGRATION,
+        })
       );
       return jsonResult(result);
     });
@@ -277,7 +281,10 @@ const crawlTool = defineTool({
       const { url, ...options } = params;
       const fc = getClient();
       const result = await runWithAbort(signal, () =>
-        fc.startCrawl(url, cleanObject(options) as CrawlOptions)
+        fc.startCrawl(url, {
+          ...(cleanObject(options) as CrawlOptions),
+          integration: INTEGRATION,
+        })
       );
       return jsonResult(result);
     });
@@ -370,7 +377,10 @@ const batchScrapeTool = defineTool({
       const { urls, ...opts } = params;
       const fc = getClient();
       const result = await runWithAbort(signal, () =>
-        fc.startBatchScrape(urls, cleanObject(opts))
+        fc.startBatchScrape(urls, {
+          ...cleanObject(opts),
+          integration: INTEGRATION,
+        })
       );
       return jsonResult(result);
     });
@@ -418,35 +428,56 @@ const extractTool = defineTool({
   name: "firecrawl_extract",
   label: "Firecrawl: Extract",
   description:
-    "Run a Firecrawl extract job: pass URLs plus a prompt (and optional JSON schema) to pull structured data across pages. Prefer firecrawl_scrape with a JSON format for single pages.",
+    "Extract structured data from one or more URLs with a shared prompt and/or JSON schema. Scrapes each URL with a JSON format and returns one result per URL.",
   promptSnippet: "Extract structured data from URLs via Firecrawl.",
   promptGuidelines: [
-    'Prefer firecrawl_scrape with formats: [{ type: "json", prompt, schema }] for single-URL extraction.',
-    "Use firecrawl_extract for multi-URL structured extraction with a shared schema.",
+    'For a single URL, firecrawl_scrape with formats: [{ type: "json", prompt, schema }] is equivalent.',
+    "Use firecrawl_extract to apply one prompt or schema across several URLs.",
   ],
   parameters: Type.Object({
-    urls: Type.Optional(Type.Array(Type.String())),
+    urls: Type.Array(Type.String(), { description: "URLs to extract from." }),
     prompt: Type.Optional(Type.String()),
     schema: Type.Optional(
       Type.Any({ description: "JSON Schema describing the desired output." })
     ),
-    systemPrompt: Type.Optional(Type.String()),
-    allowExternalLinks: Type.Optional(Type.Boolean()),
-    enableWebSearch: Type.Optional(Type.Boolean()),
-    showSources: Type.Optional(Type.Boolean()),
-    scrapeOptions: Type.Optional(Type.Any()),
-    pollInterval: Type.Optional(Type.Number()),
-    timeout: Type.Optional(
-      Type.Number({ description: "Waiter timeout in seconds." })
+    scrapeOptions: Type.Optional(
+      Type.Any({
+        description:
+          "Scrape options applied to every URL (same shape as firecrawl_scrape, minus formats).",
+      })
     ),
   }),
   async execute(_toolCallId, params, signal, _onUpdate, ctx) {
     return withStatus(ctx, "🔥 extract", async () => {
       const fc = getClient();
-      const result = await runWithAbort(signal, () =>
-        fc.extract(cleanObject(params))
+      const format = cleanObject({
+        type: "json" as const,
+        prompt: params.prompt,
+        schema: params.schema,
+      });
+      const settled = await runWithAbort(signal, () =>
+        Promise.allSettled(
+          params.urls.map((url) =>
+            fc.scrape(url, {
+              ...cleanObject(params.scrapeOptions ?? {}),
+              formats: [format],
+              integration: INTEGRATION,
+            })
+          )
+        )
       );
-      return jsonResult(result);
+      const results = settled.map((outcome, index) =>
+        outcome.status === "fulfilled"
+          ? { url: params.urls[index], data: outcome.value.json }
+          : {
+              url: params.urls[index],
+              error:
+                outcome.reason instanceof Error
+                  ? outcome.reason.message
+                  : String(outcome.reason),
+            }
+      );
+      return jsonResult({ results });
     });
   },
 });
