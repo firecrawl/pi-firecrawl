@@ -463,7 +463,7 @@ const interactTool = defineTool({
     "Control a live browser session on a scraped page with a natural-language prompt or code (click, type, navigate, extract). Pass a url to scrape and start a session, or a scrapeId to continue one. Returns the output plus the scrapeId to reuse. Call firecrawl_interact_stop when finished.",
   promptSnippet: "Interact with a live page in a Firecrawl browser session.",
   promptGuidelines: [
-    "Use firecrawl_interact when a page needs clicks, form input, logins, or multi-step navigation that firecrawl_scrape cannot do in one call.",
+    "Use firecrawl_interact when a page needs clicks, form input or multi-step navigation that firecrawl_scrape cannot do in one call.",
     "The first call takes a url; later calls pass the returned scrapeId to keep working in the same session.",
     "Always call firecrawl_interact_stop with the scrapeId when done so the session is released.",
   ],
