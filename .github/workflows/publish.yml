@@ -16,17 +16,46 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
       - name: Lint and typecheck
         run: npm run check
+
+      - name: Check whether npm already serves this version
+        id: npm
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if output=$(npm view "${NAME}@${VERSION}" version 2>&1); then
+            if [ "${output}" = "${VERSION}" ]; then
+              echo "${NAME}@${VERSION} is already on npm; skipping the publish"
+              echo "on_npm=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "unexpected answer from npm view: ${output}" >&2
+            exit 1
+          fi
+          if printf '%s' "${output}" | grep -q "E404"; then
+            echo "on_npm=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "npm lookup failed: ${output}" >&2
+          exit 1
+
+      # Uses npm trusted publishing (OIDC) once it is configured for the package; until then
+      # npm falls back to NODE_AUTH_TOKEN, which the first release needs.
       - name: Publish
+        if: steps.npm.outputs.on_npm != 'true'
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
