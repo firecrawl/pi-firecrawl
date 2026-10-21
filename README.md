@@ -18,13 +18,13 @@
 ## 📦 Install
 
 ```bash
-pi install npm:@firecrawl/pi-firecrawl
+pi install git:github.com/firecrawl/pi-firecrawl
 ```
 
 Try without installing permanently:
 
 ```bash
-FIRECRAWL_API_KEY=fc-... pi -e npm:@firecrawl/pi-firecrawl
+FIRECRAWL_API_KEY=fc-... pi -e git:github.com/firecrawl/pi-firecrawl
 ```
 
 Try locally from a checkout:
@@ -63,7 +63,7 @@ The extension never logs or displays the API key.
 | `firecrawl_crawl_cancel`        | Cancel a running crawl job.                                                 |
 | `firecrawl_batch_scrape`        | Start an async job scraping many URLs at once.                              |
 | `firecrawl_batch_scrape_status` | Poll a batch scrape job.                                                    |
-| `firecrawl_extract`             | Multi-URL structured extraction with a shared schema or prompt.             |
+| `firecrawl_extract`             | Structured JSON from several URLs with a shared prompt or schema.           |
 
 All tools fail with a clear configuration error when `FIRECRAWL_API_KEY` is missing.
 
