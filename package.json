@@ -1,72 +1,72 @@
 {
-  "name": "@firecrawl/pi-firecrawl",
-  "version": "0.1.0",
-  "description": "Official Firecrawl extension for the Pi coding agent — scrape, crawl, map, search, batch scrape, and extract from any URL.",
-  "type": "module",
-  "license": "MIT",
-  "homepage": "https://www.firecrawl.dev",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/firecrawl/pi-firecrawl.git"
-  },
-  "bugs": {
-    "url": "https://github.com/firecrawl/pi-firecrawl/issues"
-  },
-  "author": {
-    "name": "Firecrawl",
-    "email": "help@firecrawl.dev",
-    "url": "https://www.firecrawl.dev"
-  },
-  "keywords": [
-    "pi-package",
-    "pi-extension",
-    "pi",
-    "pi-coding-agent",
-    "firecrawl",
-    "scrape",
-    "crawl",
-    "map",
-    "search",
-    "extract",
-    "batch-scrape",
-    "web-scraping",
-    "ai-agent"
-  ],
-  "files": [
-    "src",
-    "README.md",
-    "LICENSE"
-  ],
-  "pi": {
-    "extensions": [
-      "./src/index.ts"
-    ]
-  },
-  "scripts": {
-    "check": "biome check . && npm run typecheck",
-    "format": "biome check --write .",
-    "lint": "biome lint .",
-    "typecheck": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@mendable/firecrawl-js": "^4.24.2"
-  },
-  "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
-    "typebox": "*"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.14",
-    "@earendil-works/pi-coding-agent": "^0.75.3",
-    "@types/node": "^22.10.0",
-    "typebox": "^1.1.37",
-    "typescript": "^5.7.0"
-  },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "engines": {
-    "node": ">=20"
-  }
+	"name": "@firecrawl/pi-firecrawl",
+	"version": "0.1.0",
+	"description": "Official Firecrawl extension for the Pi coding agent — scrape, crawl, map, search, batch scrape, and extract from any URL.",
+	"type": "module",
+	"license": "MIT",
+	"homepage": "https://www.firecrawl.dev",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/firecrawl/pi-firecrawl.git"
+	},
+	"bugs": {
+		"url": "https://github.com/firecrawl/pi-firecrawl/issues"
+	},
+	"author": {
+		"name": "Firecrawl",
+		"email": "help@firecrawl.dev",
+		"url": "https://www.firecrawl.dev"
+	},
+	"keywords": [
+		"pi-package",
+		"pi-extension",
+		"pi",
+		"pi-coding-agent",
+		"firecrawl",
+		"scrape",
+		"crawl",
+		"map",
+		"search",
+		"extract",
+		"batch-scrape",
+		"web-scraping",
+		"ai-agent"
+	],
+	"files": [
+		"src",
+		"README.md",
+		"LICENSE"
+	],
+	"pi": {
+		"extensions": [
+			"./src/index.ts"
+		]
+	},
+	"scripts": {
+		"check": "biome check . && npm run typecheck",
+		"format": "biome check --write .",
+		"lint": "biome lint .",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@mendable/firecrawl-js": "^4.24.2"
+	},
+	"peerDependencies": {
+		"@earendil-works/pi-coding-agent": "*",
+		"typebox": "*"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.14",
+		"@earendil-works/pi-coding-agent": "^0.75.3",
+		"@types/node": "^22.10.0",
+		"typebox": "^1.1.37",
+		"typescript": "^5.7.0"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"engines": {
+		"node": ">=20"
+	}
 }
