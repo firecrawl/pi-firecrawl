@@ -477,7 +477,9 @@ function jsonResult(payload: unknown) {
 	const text = JSON.stringify(payload, null, 2);
 	return {
 		content: [{ type: "text" as const, text }],
-		details: payload,
+		// The host persists `details`. SDK results are not plain data: SearchData
+		// has a `data` getter that throws, and reading it breaks session writes.
+		details: payload === undefined ? undefined : JSON.parse(text),
 	};
 }
 
